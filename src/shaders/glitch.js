@@ -41,12 +41,12 @@ export const GlitchShader = {
       uv.y = fract(uv.y + jumpTrigger * uScanJump * (hash(floor(t * 3.0) + 1.0) - 0.5));
 
       // Horizontal block displacement: rows grouped into blocks, some shoved
-      // sideways. More active rows the higher uBlock is.
+      // sideways. More shoved rows the higher uBlock is.
       float rows = 24.0;
       float blockId = floor(uv.y * rows);
       float blockRand = hash2(vec2(blockId, floor(t * 8.0)));
-      float active = step(1.0 - uBlock * 0.6, blockRand);
-      uv.x += active * (hash2(vec2(blockId, floor(t * 8.0) + 7.0)) - 0.5) * uBlock * 0.3;
+      float shove = step(1.0 - uBlock * 0.6, blockRand);
+      uv.x += shove * (hash2(vec2(blockId, floor(t * 8.0) + 7.0)) - 0.5) * uBlock * 0.3;
 
       // Fine per-frame jitter.
       float jx = (hash2(vec2(floor(t * 60.0), 3.0)) - 0.5);

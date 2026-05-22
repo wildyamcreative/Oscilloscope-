@@ -36,6 +36,7 @@ export function buildGUI(api) {
   // ---- Beam / glow ----
   const fBeam = gui.addFolder('Beam / Glow');
   fBeam.addColor(params, 'color').onChange(onVisual);
+  fBeam.add(params, 'lineWidth', 0.5, 8, 0.1).name('beam thickness').onChange(onVisual);
   fBeam.add(params, 'glowStrength', 0, 4, 0.05).name('glow strength').onChange(onVisual);
   fBeam.add(params, 'glowRadius', 0, 2, 0.01).name('glow radius').onChange(onVisual);
   fBeam.add(params, 'glowThreshold', 0, 1, 0.01).name('glow threshold').onChange(onVisual);
@@ -47,9 +48,6 @@ export function buildGUI(api) {
   fMotion.add(params, 'rotX', -2, 2, 0.01).name('spin X');
   fMotion.add(params, 'rotY', -2, 2, 0.01).name('spin Y');
   fMotion.add(params, 'rotZ', -2, 2, 0.01).name('spin Z');
-  fMotion.add(params, 'waveAmp', 0, 3, 0.01).name('wave amp').onChange(onVisual);
-  fMotion.add(params, 'waveFreq', 0, 1.5, 0.01).name('wave freq').onChange(onVisual);
-  fMotion.add(params, 'waveSpeed', 0, 5, 0.01).name('wave speed').onChange(onVisual);
 
   // ---- Glitch ----
   const fGlitch = gui.addFolder('Glitch');

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createScene } from './scene.js';
 import { createComposer } from './postprocessing.js';
-import { buildTextModel, beamUniforms } from './textModel.js';
+import { buildTextModel } from './textModel.js';
 import { buildGUI } from './controls.js';
 import { defaultParams, clonedDefaults } from './params.js';
 
@@ -16,10 +16,7 @@ let beam = null;
 // Position the camera so the whole model fits the current viewport (handles
 // tall phone screens, where horizontal field of view is the tight dimension).
 function frameCamera(object) {
-  const box = new THREE.Box3().setFromObject(object);
-  if (box.isEmpty()) return;
-  const sphere = box.getBoundingSphere(new THREE.Sphere());
-  const r = Math.max(sphere.radius, 0.001);
+  const r = Math.max(object.userData.boundingRadius || 1, 0.001);
   const vFov = THREE.MathUtils.degToRad(camera.fov);
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
   const dist = (r / Math.sin(Math.min(vFov, hFov) / 2)) * 1.25;
@@ -34,16 +31,11 @@ function frameCamera(object) {
 // Push every visual param into its uniform / object target. Called on any GUI
 // change and whenever a preset is applied so the screen always matches params.
 function applyParams() {
-  // Beam wobble uniforms.
-  beamUniforms.uWaveAmp.value = params.waveAmp;
-  beamUniforms.uWaveFreq.value = params.waveFreq;
-  beamUniforms.uWaveSpeed.value = params.waveSpeed;
-  beamUniforms.uJitter.value = params.jitter;
-
-  // Beam material (color/opacity) on the current model.
+  // Beam material (color/opacity/thickness) on the current model.
   if (beam) {
     beam.material.color.set(params.color);
     beam.material.opacity = params.lineOpacity;
+    beam.material.linewidth = params.lineWidth;
   }
 
   // Glow.
@@ -85,6 +77,8 @@ function rebuild() {
       depthLayers: params.depthLayers,
       color: params.color,
       opacity: params.lineOpacity,
+      lineWidth: params.lineWidth,
+      resolution: { x: window.innerWidth, y: window.innerHeight },
     });
   } catch (err) {
     console.error('Failed to build text model:', err);
@@ -132,6 +126,7 @@ window.addEventListener('resize', () => {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   post.setSize(w, h);
+  if (beam) beam.material.resolution.set(w, h);
 });
 
 // Animation loop.
@@ -141,7 +136,6 @@ function tick() {
   const dt = clock.getDelta();
   const t = clock.elapsedTime;
 
-  beamUniforms.uTime.value = t;
   post.glitch.uniforms.uTime.value = t;
   post.crt.uniforms.uTime.value = t;
 

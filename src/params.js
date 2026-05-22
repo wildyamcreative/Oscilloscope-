@@ -4,24 +4,22 @@
 export const defaultParams = {
   // Text / model
   text: 'HELLO',
-  voxelRes: 16,
+  voxelRes: 8,
   depthLayers: 2,
 
   // Beam / glow
   color: '#39ff7a',
-  glowStrength: 1.5,
-  glowRadius: 0.6,
-  glowThreshold: 0.0,
-  lineOpacity: 0.95,
+  lineWidth: 2.0,
+  glowStrength: 0.25,
+  glowRadius: 0.0,
+  glowThreshold: 0.3,
+  lineOpacity: 1.0,
 
   // Motion
   autoRotate: true,
-  rotX: 0.0,
+  rotX: 0.05,
   rotY: 0.18,
   rotZ: 0.0,
-  waveAmp: 0.4,
-  waveFreq: 0.35,
-  waveSpeed: 1.2,
 
   // Glitch
   glitchAmount: 0.0,
@@ -36,8 +34,8 @@ export const defaultParams = {
   curvature: 0.18,
   vignette: 0.45,
   flicker: 0.04,
-  noise: 0.05,
-  phosphorPersistence: 0.55,
+  noise: 0.04,
+  phosphorPersistence: 0.0,
 };
 
 // Named presets. Each is a partial override merged over defaultParams when
@@ -51,12 +49,10 @@ export const presets = {
     block: 0.0,
     jitter: 0.0,
     scanJump: 0.0,
-    waveAmp: 0.15,
-    waveFreq: 0.2,
     scanIntensity: 0.25,
     noise: 0.04,
     flicker: 0.03,
-    phosphorPersistence: 0.4,
+    phosphorPersistence: 0.3,
     rotY: 0.1,
   },
 
@@ -66,13 +62,10 @@ export const presets = {
     block: 0.6,
     jitter: 0.5,
     scanJump: 0.4,
-    waveAmp: 0.9,
-    waveFreq: 0.6,
-    waveSpeed: 2.4,
     noise: 0.25,
     flicker: 0.18,
-    glowStrength: 2.1,
-    phosphorPersistence: 0.6,
+    glowStrength: 1.6,
+    phosphorPersistence: 0.45,
   },
 
   'Broken Tube': {
@@ -97,19 +90,16 @@ export const presets = {
     block: 0.0,
     jitter: 0.1,
     scanJump: 0.05,
-    waveAmp: 0.5,
-    waveFreq: 0.5,
-    waveSpeed: 1.6,
     scanIntensity: 0.5,
     scanCount: 1100,
     curvature: 0.08,
     vignette: 0.3,
     noise: 0.06,
     flicker: 0.05,
-    glowStrength: 2.4,
-    glowRadius: 0.9,
+    glowStrength: 1.8,
+    glowRadius: 0.7,
     color: '#46f0ff',
-    phosphorPersistence: 0.5,
+    phosphorPersistence: 0.35,
     rotY: 0.28,
   },
 };
