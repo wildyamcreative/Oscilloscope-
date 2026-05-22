@@ -3,10 +3,9 @@
 
 export const defaultParams = {
   // Text / model
-  text: 'OSCILLOSCOPE',
-  size: 12,
-  depth: 3,
-  font: 'helvetiker_regular',
+  text: 'HELLO',
+  voxelRes: 16,
+  depthLayers: 2,
 
   // Beam / glow
   color: '#39ff7a',
@@ -36,8 +35,8 @@ export const defaultParams = {
   scanCount: 700,
   curvature: 0.18,
   vignette: 0.45,
-  flicker: 0.06,
-  noise: 0.08,
+  flicker: 0.04,
+  noise: 0.05,
   phosphorPersistence: 0.55,
 };
 
@@ -113,12 +112,6 @@ export const presets = {
     phosphorPersistence: 0.5,
     rotY: 0.28,
   },
-};
-
-// Fonts bundled in public/fonts. Label -> file basename (without extension).
-export const fonts = {
-  'Helvetiker Regular': 'helvetiker_regular',
-  'Helvetiker Bold': 'helvetiker_bold',
 };
 
 export function clonedDefaults() {

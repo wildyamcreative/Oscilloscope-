@@ -12,7 +12,24 @@ const post = createComposer(renderer, scene, camera);
 // Mutable live state, seeded from defaults.
 const params = clonedDefaults();
 let beam = null;
-let rebuildToken = 0;
+
+// Position the camera so the whole model fits the current viewport (handles
+// tall phone screens, where horizontal field of view is the tight dimension).
+function frameCamera(object) {
+  const box = new THREE.Box3().setFromObject(object);
+  if (box.isEmpty()) return;
+  const sphere = box.getBoundingSphere(new THREE.Sphere());
+  const r = Math.max(sphere.radius, 0.001);
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
+  const dist = (r / Math.sin(Math.min(vFov, hFov) / 2)) * 1.25;
+  camera.position.set(0, 0, dist);
+  camera.near = Math.max(dist / 100, 0.01);
+  camera.far = dist * 100;
+  camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
 
 // Push every visual param into its uniform / object target. Called on any GUI
 // change and whenever a preset is applied so the screen always matches params.
@@ -58,28 +75,19 @@ function applyParams() {
   if (readout) readout.textContent = (params.text || '').slice(0, 16).toUpperCase() || 'TEXT';
 }
 
-// Rebuild the 3D text model. Debounced via a token so rapid typing only keeps
-// the latest result.
-async function rebuild() {
-  const token = ++rebuildToken;
+// Rebuild the 3D text model from the current params.
+function rebuild() {
   let model;
   try {
-    model = await buildTextModel({
+    model = buildTextModel({
       text: params.text,
-      size: params.size,
-      depth: params.depth,
-      font: params.font,
+      voxelRes: params.voxelRes,
+      depthLayers: params.depthLayers,
       color: params.color,
       opacity: params.lineOpacity,
     });
   } catch (err) {
     console.error('Failed to build text model:', err);
-    return;
-  }
-  if (token !== rebuildToken) {
-    // A newer rebuild superseded this one.
-    model.geometry.dispose();
-    model.material.dispose();
     return;
   }
   if (beam) {
@@ -88,7 +96,9 @@ async function rebuild() {
     beam.material.dispose();
   }
   beam = model;
+  beam.rotation.set(0, 0, 0);
   scene.add(beam);
+  frameCamera(beam);
   applyParams();
 }
 

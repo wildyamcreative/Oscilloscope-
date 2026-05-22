@@ -1,34 +1,14 @@
 import * as THREE from 'three';
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
 // Uniforms shared by every line material we build. Keeping a single object lets
 // the GUI/animation loop write here once and have rebuilt models pick it up.
 export const beamUniforms = {
   uTime: { value: 0 },
-  uWaveAmp: { value: 0.4 },
+  uWaveAmp: { value: 0.2 },
   uWaveFreq: { value: 0.35 },
   uWaveSpeed: { value: 1.2 },
   uJitter: { value: 0.0 },
 };
-
-const fontCache = new Map();
-const loader = new FontLoader();
-
-function loadFont(name) {
-  if (fontCache.has(name)) return Promise.resolve(fontCache.get(name));
-  return new Promise((resolve, reject) => {
-    loader.load(
-      `./fonts/${name}.typeface.json`,
-      (font) => {
-        fontCache.set(name, font);
-        resolve(font);
-      },
-      undefined,
-      reject
-    );
-  });
-}
 
 function makeBeamMaterial(colorHex, opacity) {
   const material = new THREE.LineBasicMaterial({
@@ -78,28 +58,104 @@ function makeBeamMaterial(colorHex, opacity) {
   return material;
 }
 
-// Builds the glowing-green 3D wireframe: extruded text -> edge lines.
-export async function buildTextModel({ text, size, depth, font, color, opacity }) {
-  const loaded = await loadFont(font);
+// Rasterize the text to a small canvas in a heavy/bold face, then read it back
+// as a grid of filled cells -> one voxel per cell.
+function sampleGlyphGrid(text, rows) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const fontPx = Math.max(6, Math.round(rows));
+  const fontSpec = `900 ${fontPx}px "Arial Black", Impact, "Helvetica Neue", Arial, sans-serif`;
 
-  const beveled = depth > 0.5;
-  const textGeo = new TextGeometry(text || ' ', {
-    font: loaded,
-    size,
-    depth,
-    curveSegments: 6,
-    bevelEnabled: beveled,
-    bevelThickness: beveled ? depth * 0.15 : 0,
-    bevelSize: beveled ? size * 0.02 : 0,
-    bevelSegments: 2,
-  });
-  textGeo.center();
+  ctx.font = fontSpec;
+  const metrics = ctx.measureText(text);
+  const cols = Math.max(1, Math.ceil(metrics.width) + 2);
+  const height = fontPx + 4;
 
-  const edges = new THREE.EdgesGeometry(textGeo, 25);
-  textGeo.dispose();
+  canvas.width = cols;
+  canvas.height = height;
+  // Resizing the canvas resets the context, so re-apply the font.
+  ctx.font = fontSpec;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, cols, height);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, 1, height / 2);
 
+  const data = ctx.getImageData(0, 0, cols, height).data;
+  const cells = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < cols; x++) {
+      // Red channel is enough (we drew white on black).
+      if (data[(y * cols + x) * 4] > 128) cells.push([x, y]);
+    }
+  }
+  return { cells, cols, rows: height };
+}
+
+const CORNERS = [
+  [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+  [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1],
+];
+const CUBE_EDGES = [
+  [0, 1], [1, 2], [2, 3], [3, 0],
+  [4, 5], [5, 6], [6, 7], [7, 4],
+  [0, 4], [1, 5], [2, 6], [3, 7],
+];
+
+// Pure geometry builder (no DOM / no WebGL, so it is unit-testable in Node):
+// a unit cube at every filled voxel cell, stacked `depthLayers` deep in Z.
+// Shared edges are de-duplicated so overlapping cubes don't double-brighten
+// under additive blending. Returns a flat array of line-segment positions.
+export function buildPositionsFromCells(cells, depthLayers) {
+  const layers = Math.max(1, Math.round(depthLayers));
+  const seen = new Set();
+  const positions = [];
+
+  const addEdge = (ax, ay, az, bx, by, bz) => {
+    const key =
+      ax <= bx && ay <= by && az <= bz
+        ? `${ax},${ay},${az}_${bx},${by},${bz}`
+        : `${bx},${by},${bz}_${ax},${ay},${az}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    positions.push(ax, ay, az, bx, by, bz);
+  };
+
+  for (const [cx, cy] of cells) {
+    for (let z = 0; z < layers; z++) {
+      // Flip Y so text isn't upside-down; world origin handled by centering.
+      const ox = cx;
+      const oy = -cy;
+      const oz = z;
+      for (const [a, b] of CUBE_EDGES) {
+        const ca = CORNERS[a];
+        const cb = CORNERS[b];
+        addEdge(
+          ox + ca[0], oy + ca[1], oz + ca[2],
+          ox + cb[0], oy + cb[1], oz + cb[2]
+        );
+      }
+    }
+  }
+  return positions;
+}
+
+function buildVoxelGeometry(text, rows, depthLayers) {
+  const { cells } = sampleGlyphGrid(text || ' ', rows);
+  const positions = buildPositionsFromCells(cells, depthLayers);
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.center();
+  return geo;
+}
+
+// Builds the glowing-green 3D wireframe block-letter model.
+export function buildTextModel({ text, voxelRes, depthLayers, color, opacity }) {
+  const geometry = buildVoxelGeometry(text, voxelRes, depthLayers);
   const material = makeBeamMaterial(color, opacity);
-  const lines = new THREE.LineSegments(edges, material);
+  const lines = new THREE.LineSegments(geometry, material);
   lines.name = 'beam';
   return lines;
 }

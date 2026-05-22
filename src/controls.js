@@ -1,5 +1,5 @@
 import GUI from 'lil-gui';
-import { presets, fonts, defaultParams } from './params.js';
+import { presets, defaultParams } from './params.js';
 
 const STORAGE_KEY = 'oscilloscope-saved-preset';
 
@@ -30,9 +30,8 @@ export function buildGUI(api) {
   // ---- Text / model ----
   const fText = gui.addFolder('Text');
   fText.add(params, 'text').name('input').onChange(rebuildSoon);
-  fText.add(params, 'size', 2, 40, 0.5).onChange(rebuildSoon);
-  fText.add(params, 'depth', 0, 12, 0.5).name('extrusion').onChange(rebuildSoon);
-  fText.add(params, 'font', fonts).onChange(() => api.rebuild());
+  fText.add(params, 'voxelRes', 8, 36, 1).name('block detail').onChange(rebuildSoon);
+  fText.add(params, 'depthLayers', 1, 6, 1).name('cube depth').onChange(rebuildSoon);
 
   // ---- Beam / glow ----
   const fBeam = gui.addFolder('Beam / Glow');
