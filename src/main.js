@@ -1,0 +1,147 @@
+import * as THREE from 'three';
+import { createScene } from './scene.js';
+import { createComposer } from './postprocessing.js';
+import { buildTextModel, beamUniforms } from './textModel.js';
+import { buildGUI } from './controls.js';
+import { defaultParams, clonedDefaults } from './params.js';
+
+const canvas = document.getElementById('scope');
+const { renderer, scene, camera, controls } = createScene(canvas);
+const post = createComposer(renderer, scene, camera);
+
+// Mutable live state, seeded from defaults.
+const params = clonedDefaults();
+let beam = null;
+let rebuildToken = 0;
+
+// Push every visual param into its uniform / object target. Called on any GUI
+// change and whenever a preset is applied so the screen always matches params.
+function applyParams() {
+  // Beam wobble uniforms.
+  beamUniforms.uWaveAmp.value = params.waveAmp;
+  beamUniforms.uWaveFreq.value = params.waveFreq;
+  beamUniforms.uWaveSpeed.value = params.waveSpeed;
+  beamUniforms.uJitter.value = params.jitter;
+
+  // Beam material (color/opacity) on the current model.
+  if (beam) {
+    beam.material.color.set(params.color);
+    beam.material.opacity = params.lineOpacity;
+  }
+
+  // Glow.
+  post.bloom.strength = params.glowStrength;
+  post.bloom.radius = params.glowRadius;
+  post.bloom.threshold = params.glowThreshold;
+
+  // Phosphor persistence.
+  post.afterimage.uniforms.damp.value = params.phosphorPersistence;
+
+  // Glitch.
+  post.glitch.uniforms.uAmount.value = params.glitchAmount;
+  post.glitch.uniforms.uRgbSplit.value = params.rgbSplit;
+  post.glitch.uniforms.uBlock.value = params.block;
+  post.glitch.uniforms.uJitter.value = params.jitter;
+  post.glitch.uniforms.uScanJump.value = params.scanJump;
+
+  // CRT.
+  post.crt.uniforms.uScanIntensity.value = params.scanIntensity;
+  post.crt.uniforms.uScanCount.value = params.scanCount;
+  post.crt.uniforms.uCurvature.value = params.curvature;
+  post.crt.uniforms.uVignette.value = params.vignette;
+  post.crt.uniforms.uFlicker.value = params.flicker;
+  post.crt.uniforms.uNoise.value = params.noise;
+
+  // Auto-rotate flag on OrbitControls is handled in the loop via params.
+
+  const readout = document.getElementById('readout-text');
+  if (readout) readout.textContent = (params.text || '').slice(0, 16).toUpperCase() || 'TEXT';
+}
+
+// Rebuild the 3D text model. Debounced via a token so rapid typing only keeps
+// the latest result.
+async function rebuild() {
+  const token = ++rebuildToken;
+  let model;
+  try {
+    model = await buildTextModel({
+      text: params.text,
+      size: params.size,
+      depth: params.depth,
+      font: params.font,
+      color: params.color,
+      opacity: params.lineOpacity,
+    });
+  } catch (err) {
+    console.error('Failed to build text model:', err);
+    return;
+  }
+  if (token !== rebuildToken) {
+    // A newer rebuild superseded this one.
+    model.geometry.dispose();
+    model.material.dispose();
+    return;
+  }
+  if (beam) {
+    scene.remove(beam);
+    beam.geometry.dispose();
+    beam.material.dispose();
+  }
+  beam = model;
+  scene.add(beam);
+  applyParams();
+}
+
+const api = {
+  params,
+  defaults: defaultParams,
+  applyParams,
+  rebuild,
+  screenshot,
+  controls,
+};
+
+function screenshot() {
+  // Render one fresh frame, then read the canvas out as a PNG download.
+  post.composer.render();
+  const url = renderer.domElement.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `oscilloscope-${Date.now()}.png`;
+  a.click();
+}
+
+buildGUI(api);
+rebuild();
+
+// Resize handling.
+window.addEventListener('resize', () => {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  post.setSize(w, h);
+});
+
+// Animation loop.
+const clock = new THREE.Clock();
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = clock.getDelta();
+  const t = clock.elapsedTime;
+
+  beamUniforms.uTime.value = t;
+  post.glitch.uniforms.uTime.value = t;
+  post.crt.uniforms.uTime.value = t;
+
+  if (beam && params.autoRotate) {
+    beam.rotation.x += params.rotX * dt;
+    beam.rotation.y += params.rotY * dt;
+    beam.rotation.z += params.rotZ * dt;
+  }
+
+  controls.update();
+  post.composer.render();
+}
+tick();

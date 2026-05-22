@@ -1,0 +1,146 @@
+:root {
+  --phosphor: #39ff7a;
+  --phosphor-dim: #1f8a44;
+  --bezel: #15171a;
+  --bezel-edge: #2a2d31;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #050605;
+  color: var(--phosphor);
+  font-family: 'Courier New', ui-monospace, monospace;
+  overflow: hidden;
+}
+
+#monitor {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #0c0f0c 0%, #050605 70%);
+  padding: 24px;
+}
+
+#bezel {
+  position: relative;
+  width: min(96vw, 96vh * 1.5);
+  height: min(92vh, 96vw / 1.5);
+  border-radius: 26px;
+  padding: 22px 22px 44px;
+  background: linear-gradient(160deg, #202327 0%, #111316 60%, #0a0b0d 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.06),
+    inset 0 -6px 18px rgba(0, 0, 0, 0.8),
+    0 24px 60px rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--bezel-edge);
+}
+
+#screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.95),
+    inset 0 0 8px rgba(57, 255, 122, 0.12);
+}
+
+#scope {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Glass gloss / reflection sheen over the tube. */
+#glass {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(125deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 32%),
+    radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.06), transparent 60%);
+  mix-blend-mode: screen;
+}
+
+#readout {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--phosphor-dim);
+  text-shadow: 0 0 6px rgba(57, 255, 122, 0.4);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+#brand {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #4a4f54;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Faint power-on flicker on the whole screen. */
+@keyframes screenFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 1;
+  }
+  98% {
+    opacity: 0.92;
+  }
+  99% {
+    opacity: 0.97;
+  }
+}
+
+#screen {
+  animation: screenFlicker 7s infinite;
+}
+
+/* ---- lil-gui theme: green-on-black scope hardware ---- */
+.lil-gui {
+  --background-color: rgba(6, 12, 7, 0.92);
+  --text-color: #39ff7a;
+  --title-background-color: rgba(10, 20, 12, 0.95);
+  --title-text-color: #7dffae;
+  --widget-color: #0c1a10;
+  --hover-color: #123a22;
+  --focus-color: #16482a;
+  --number-color: #aaffcc;
+  --string-color: #aaffcc;
+  --font-family: 'Courier New', monospace;
+  --font-size: 11px;
+  --widget-height: 22px;
+  border: 1px solid rgba(57, 255, 122, 0.25);
+  box-shadow: 0 0 24px rgba(57, 255, 122, 0.12);
+  backdrop-filter: blur(2px);
+}
+
+.lil-gui .title {
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(57, 255, 122, 0.5);
+}
