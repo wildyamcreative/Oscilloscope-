@@ -60,6 +60,8 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+  /* Let finger drags/pinches drive OrbitControls instead of scrolling/zooming the page. */
+  touch-action: none;
 }
 
 /* Glass gloss / reflection sheen over the tube. */

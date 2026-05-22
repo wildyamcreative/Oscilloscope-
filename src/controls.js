@@ -138,5 +138,8 @@ export function buildGUI(api) {
   fPre.add(actions, 'importJSON').name('import JSON');
   fPre.add(actions, 'reset').name('reset all');
 
+  // On phones the panel covers the screen; start it collapsed.
+  if (window.innerWidth < 700) gui.close();
+
   return gui;
 }
