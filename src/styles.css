@@ -1,8 +1,6 @@
 :root {
   --phosphor: #39ff7a;
   --phosphor-dim: #1f8a44;
-  --bezel: #15171a;
-  --bezel-edge: #2a2d31;
 }
 
 * {
@@ -14,113 +12,104 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #050605;
+  background: #000;
   color: var(--phosphor);
   font-family: 'Courier New', ui-monospace, monospace;
   overflow: hidden;
 }
 
-#monitor {
+/* The visualizer is the whole window now — no TV frame. */
+#scope {
   position: fixed;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle at 50% 40%, #0c0f0c 0%, #050605 70%);
-  padding: 24px;
-}
-
-#bezel {
-  position: relative;
-  width: min(96vw, 96vh * 1.5);
-  height: min(92vh, 96vw / 1.5);
-  border-radius: 26px;
-  padding: 22px 22px 44px;
-  background: linear-gradient(160deg, #202327 0%, #111316 60%, #0a0b0d 100%);
-  box-shadow:
-    inset 0 2px 4px rgba(255, 255, 255, 0.06),
-    inset 0 -6px 18px rgba(0, 0, 0, 0.8),
-    0 24px 60px rgba(0, 0, 0, 0.8);
-  border: 1px solid var(--bezel-edge);
-}
-
-#screen {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #000;
-  box-shadow:
-    inset 0 0 60px rgba(0, 0, 0, 0.95),
-    inset 0 0 8px rgba(57, 255, 122, 0.12);
-}
-
-#scope {
   display: block;
   width: 100%;
   height: 100%;
+  background: #000;
   /* Let finger drags/pinches drive OrbitControls instead of scrolling/zooming the page. */
   touch-action: none;
 }
 
-/* Glass gloss / reflection sheen over the tube. */
-#glass {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(125deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 32%),
-    radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.06), transparent 60%);
-  mix-blend-mode: screen;
+/* ---- Heads-up overlay ---- */
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 14px 16px;
+  pointer-events: none; /* clicks fall through to the canvas */
+  z-index: 5;
 }
 
-#readout {
-  position: absolute;
-  top: 10px;
-  left: 14px;
-  right: 14px;
-  display: flex;
-  justify-content: space-between;
+#status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   letter-spacing: 2px;
   color: var(--phosphor-dim);
   text-shadow: 0 0 6px rgba(57, 255, 122, 0.4);
-  pointer-events: none;
-  opacity: 0.8;
+  text-transform: uppercase;
 }
 
-#brand {
-  position: absolute;
+#status .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--phosphor);
+  box-shadow: 0 0 8px var(--phosphor);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+#status .sep {
+  opacity: 0.5;
+}
+
+#readout-text {
+  color: var(--phosphor);
+  text-shadow: 0 0 8px rgba(57, 255, 122, 0.5);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ---- Zoom / framing controls ---- */
+#viewport-tools {
+  position: fixed;
+  left: 14px;
   bottom: 14px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: #4a4f54;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Above the lil-gui control panel so taps always land on the buttons. */
+  z-index: 1100;
 }
 
-/* Faint power-on flicker on the whole screen. */
-@keyframes screenFlicker {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  97% {
-    opacity: 1;
-  }
-  98% {
-    opacity: 0.92;
-  }
-  99% {
-    opacity: 0.97;
-  }
+#viewport-tools button {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(57, 255, 122, 0.3);
+  background: rgba(6, 12, 7, 0.78);
+  color: var(--phosphor);
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  box-shadow: 0 0 16px rgba(57, 255, 122, 0.12);
+  transition: background 0.12s ease, transform 0.06s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-#screen {
-  animation: screenFlicker 7s infinite;
+#viewport-tools button:hover {
+  background: rgba(18, 58, 34, 0.9);
+}
+
+#viewport-tools button:active {
+  transform: scale(0.92);
 }
 
 /* ---- lil-gui theme: green-on-black scope hardware ---- */
@@ -145,4 +134,11 @@ body {
 .lil-gui .title {
   letter-spacing: 2px;
   text-shadow: 0 0 8px rgba(57, 255, 122, 0.5);
+}
+
+/* Keep the controls clear of the zoom buttons on small screens. */
+@media (max-width: 700px) {
+  .lil-gui.autoPlace {
+    max-height: 70%;
+  }
 }
