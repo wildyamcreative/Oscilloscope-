@@ -1,5 +1,6 @@
 import GUI from 'lil-gui';
 import { presets, defaultParams } from './params.js';
+import { loadImageFromFile } from './textModel.js';
 
 const STORAGE_KEY = 'oscilloscope-saved-preset';
 
@@ -23,15 +24,74 @@ export function buildGUI(api) {
   function applyState(partial, { rebuild = false } = {}) {
     Object.assign(params, partial);
     gui.controllersRecursive().forEach((c) => c.updateDisplay());
+    refreshSourceVisibility();
     api.applyParams();
     if (rebuild) api.rebuild();
   }
+
+  // ---- Source (text vs. image hologram) ----
+  const fSource = gui.addFolder('Source');
+  const MODES = { Text: 'text', 'Image hologram': 'image' };
+
+  // Open a file picker, load the chosen image and switch into hologram mode.
+  function pickImage() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const img = await loadImageFromFile(file);
+        api.setImage(img);
+        params.mode = 'image';
+        gui.controllersRecursive().forEach((c) => c.updateDisplay());
+        refreshSourceVisibility();
+      } catch (e) {
+        console.error('Could not load image:', e);
+      }
+    };
+    input.click();
+  }
+
+  const sourceActions = { loadImage: pickImage };
+
+  fSource
+    .add(params, 'mode', MODES)
+    .name('mode')
+    .onChange((mode) => {
+      // Selecting image mode with nothing loaded yet — prompt for a file.
+      if (mode === 'image' && !api.hasImage()) {
+        pickImage();
+      } else {
+        api.rebuild();
+      }
+      refreshSourceVisibility();
+    });
+
+  fSource.add(sourceActions, 'loadImage').name('load image…');
 
   // ---- Text / model ----
   const fText = gui.addFolder('Text');
   fText.add(params, 'text').name('input').onChange(rebuildSoon);
   fText.add(params, 'voxelRes', 8, 36, 1).name('block detail').onChange(rebuildSoon);
   fText.add(params, 'depthLayers', 1, 6, 1).name('cube depth').onChange(rebuildSoon);
+
+  // ---- Image hologram ----
+  const fImage = gui.addFolder('Image hologram');
+  fImage.add(params, 'imageRes', 16, 160, 1).name('resolution').onChange(rebuildSoon);
+  fImage.add(params, 'imageDepth', 1, 16, 1).name('relief depth').onChange(rebuildSoon);
+  fImage.add(params, 'imageThreshold', 0, 1, 0.01).name('brightness cutoff').onChange(rebuildSoon);
+  fImage.add(params, 'imageInvert').name('invert').onChange(rebuildSoon);
+  fImage.add(params, 'imageColor').name('use image colors').onChange(rebuildSoon);
+
+  // Show only the folder relevant to the current mode.
+  function refreshSourceVisibility() {
+    const isImage = params.mode === 'image';
+    fText.show(!isImage);
+    fImage.show(isImage);
+  }
+  refreshSourceVisibility();
 
   // ---- Beam / glow ----
   const fBeam = gui.addFolder('Beam / Glow');

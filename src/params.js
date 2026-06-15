@@ -2,10 +2,22 @@
 // The GUI binds directly to this object; presets are just snapshots of it.
 
 export const defaultParams = {
+  // Source: 'text' renders the typed string; 'image' renders an uploaded image
+  // as a 3D brightness-relief hologram. Switched automatically when an image
+  // is loaded, and selectable in the GUI.
+  mode: 'text',
+
   // Text / model
   text: 'HELLO',
   voxelRes: 8,
   depthLayers: 2,
+
+  // Image hologram
+  imageRes: 64, // grid resolution along the longest edge
+  imageDepth: 6, // max cube layers for the brightest pixels (relief height)
+  imageThreshold: 0.2, // brightness cutoff below which pixels are skipped
+  imageInvert: false, // build from dark areas instead of bright
+  imageColor: false, // sample original image colors instead of the beam color
 
   // Beam / glow
   color: '#39ff7a',

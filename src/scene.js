@@ -26,6 +26,11 @@ export function createScene(canvas) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
+  // Drag to rotate, wheel / pinch to zoom, two-finger / right-drag to pan.
+  controls.enableZoom = true;
+  controls.zoomSpeed = 1.1;
+  controls.zoomToCursor = true;
+  controls.enablePan = true;
   // Wide range so auto-framing (which sets the camera distance to fit the model)
   // is never clamped for long words.
   controls.minDistance = 1;

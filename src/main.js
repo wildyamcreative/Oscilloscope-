@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createScene } from './scene.js';
 import { createComposer } from './postprocessing.js';
-import { buildTextModel } from './textModel.js';
+import { buildTextModel, buildImageModel } from './textModel.js';
 import { buildGUI } from './controls.js';
 import { defaultParams, clonedDefaults } from './params.js';
 
@@ -12,6 +12,8 @@ const post = createComposer(renderer, scene, camera);
 // Mutable live state, seeded from defaults.
 const params = clonedDefaults();
 let beam = null;
+// The currently loaded image element (when in image/hologram mode).
+let sourceImage = null;
 
 // Position the camera so the whole model fits the current viewport (handles
 // tall phone screens, where horizontal field of view is the tight dimension).
@@ -31,9 +33,10 @@ function frameCamera(object) {
 // Push every visual param into its uniform / object target. Called on any GUI
 // change and whenever a preset is applied so the screen always matches params.
 function applyParams() {
-  // Beam material (color/opacity/thickness) on the current model.
+  // Beam material (color/opacity/thickness) on the current model. Skip the
+  // color when the model carries its own per-vertex (image) colors.
   if (beam) {
-    beam.material.color.set(params.color);
+    if (!beam.userData.useVertexColors) beam.material.color.set(params.color);
     beam.material.opacity = params.lineOpacity;
     beam.material.linewidth = params.lineWidth;
   }
@@ -64,24 +67,45 @@ function applyParams() {
   // Auto-rotate flag on OrbitControls is handled in the loop via params.
 
   const readout = document.getElementById('readout-text');
-  if (readout) readout.textContent = (params.text || '').slice(0, 16).toUpperCase() || 'TEXT';
+  if (readout) {
+    readout.textContent =
+      params.mode === 'image'
+        ? 'HOLOGRAM'
+        : (params.text || '').slice(0, 16).toUpperCase() || 'TEXT';
+  }
 }
 
-// Rebuild the 3D text model from the current params.
+// Rebuild the 3D model (text or image hologram) from the current params.
 function rebuild() {
+  const resolution = { x: window.innerWidth, y: window.innerHeight };
+  const common = {
+    color: params.color,
+    opacity: params.lineOpacity,
+    lineWidth: params.lineWidth,
+    resolution,
+  };
   let model;
   try {
-    model = buildTextModel({
-      text: params.text,
-      voxelRes: params.voxelRes,
-      depthLayers: params.depthLayers,
-      color: params.color,
-      opacity: params.lineOpacity,
-      lineWidth: params.lineWidth,
-      resolution: { x: window.innerWidth, y: window.innerHeight },
-    });
+    if (params.mode === 'image' && sourceImage) {
+      model = buildImageModel({
+        image: sourceImage,
+        imageRes: params.imageRes,
+        imageDepth: params.imageDepth,
+        imageThreshold: params.imageThreshold,
+        imageInvert: params.imageInvert,
+        imageColor: params.imageColor,
+        ...common,
+      });
+    } else {
+      model = buildTextModel({
+        text: params.text,
+        voxelRes: params.voxelRes,
+        depthLayers: params.depthLayers,
+        ...common,
+      });
+    }
   } catch (err) {
-    console.error('Failed to build text model:', err);
+    console.error('Failed to build model:', err);
     return;
   }
   if (beam) {
@@ -96,6 +120,13 @@ function rebuild() {
   applyParams();
 }
 
+// Adopt a freshly loaded image and switch into hologram mode.
+function setImage(image) {
+  sourceImage = image;
+  params.mode = 'image';
+  rebuild();
+}
+
 const api = {
   params,
   defaults: defaultParams,
@@ -103,6 +134,9 @@ const api = {
   rebuild,
   screenshot,
   controls,
+  setImage,
+  fitView: () => beam && frameCamera(beam),
+  hasImage: () => !!sourceImage,
 };
 
 function screenshot() {
@@ -117,6 +151,24 @@ function screenshot() {
 
 buildGUI(api);
 rebuild();
+
+// Optional debug handle for headless/manual inspection (?debug in the URL).
+// Inert in normal use.
+if (location.search.includes('debug')) {
+  window.__scope = { scene, camera, controls, post, renderer, params, api, getBeam: () => beam };
+}
+
+// ---- Zoom / framing buttons (dolly the camera along its view direction) ----
+function zoomBy(factor) {
+  const dir = camera.position.clone().sub(controls.target);
+  let len = dir.length() * factor;
+  len = THREE.MathUtils.clamp(len, controls.minDistance, controls.maxDistance);
+  camera.position.copy(controls.target).add(dir.setLength(len));
+  controls.update();
+}
+document.getElementById('zoom-in')?.addEventListener('click', () => zoomBy(0.8));
+document.getElementById('zoom-out')?.addEventListener('click', () => zoomBy(1.25));
+document.getElementById('zoom-fit')?.addEventListener('click', () => api.fitView());
 
 // Resize handling.
 window.addEventListener('resize', () => {
