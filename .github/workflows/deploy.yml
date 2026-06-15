@@ -1,10 +1,20 @@
 name: Deploy to GitHub Pages
 
+# Deploy on pushes to the long-lived branches: `main` (so merges auto-deploy)
+# and the feature branch (so in-progress work can be previewed). Workflow can
+# also be run manually from the Actions tab if a rollback or reroll is needed.
 on:
   push:
     branches:
+      - main
       - claude/oscilloscope-text-3d-viz-9mmt4
   workflow_dispatch:
+
+# Only one deploy in flight at a time, and let a newer push cancel an older
+# run so the latest commit always wins (no stale build clobbering a newer one).
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
 
 permissions:
   contents: write
