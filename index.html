@@ -2,25 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OSCILLOSCOPE // text visualizer</title>
-    <script type="module" crossorigin src="./assets/index-DJ30GQTA.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DgiTNuTU.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>OSCILLOSCOPE // 3D visualizer</title>
+    <script type="module" crossorigin src="./assets/index-DizLa1Jp.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CLdS2G4b.css">
   </head>
   <body>
-    <div id="monitor">
-      <div id="bezel">
-        <div id="screen">
-          <canvas id="scope"></canvas>
-          <div id="glass"></div>
-          <div id="readout">
-            <span class="label">CH1</span>
-            <span class="label" id="readout-text">TEXT</span>
-            <span class="label">XY MODE</span>
-          </div>
-        </div>
-        <div id="brand">VECTORSCOPE&nbsp;&middot;&nbsp;MODEL&nbsp;OS-3D</div>
+    <!-- Full-window visualizer screen (no TV bezel). -->
+    <canvas id="scope"></canvas>
+
+    <!-- Minimal heads-up overlay; never intercepts pointer events on the scene. -->
+    <div id="hud">
+      <div id="status">
+        <span class="dot"></span>
+        <span class="status-label">LIVE</span>
+        <span class="sep">//</span>
+        <span id="readout-text">HELLO</span>
       </div>
     </div>
+
+    <!-- Zoom / framing controls. -->
+    <div id="viewport-tools">
+      <button id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+      <button id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out">&minus;</button>
+      <button id="zoom-fit" type="button" aria-label="Fit to screen" title="Fit to screen">&#9633;</button>
+    </div>
+
   </body>
 </html>
